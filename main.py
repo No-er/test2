@@ -1,17 +1,20 @@
 import socket
-from select import select
+import selectors
 
-sockets_list = []
+selector = selectors.DefaultSelector()
+def server():
+    server_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_s.bind(("localhost", 5000))
+    server_s.listen()
 
-server_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server_s.bind(("localhost", 5000))
-server_s.listen()
+    selector.register(fileobj=server_s, events=selectors.EVENT_READ, data=acc_connection)
 
 def acc_connection(server_s):
     client_s, addr = server_s.accept()
     print('Connection from', addr)
-    sockets_list.append(client_s)
+
+    selector.register(fileobj=client_s, events=selectors.EVENT_READ, data=send_m)
 
 def send_m(client_s):
     try:
@@ -19,19 +22,19 @@ def send_m(client_s):
         resp = "Hi MotherFucker\n".encode()
         client_s.send(resp)
     except:
-        sockets_list.remove(client_s)
+        selector.unregister(client_s)
         client_s.close()
 
 def loop():
     while True:
-        ready_to_read, _, _ = select(sockets_list, [], [])
-        for socket in ready_to_read:
-            if socket is server_s:
-                acc_connection(socket)
-            else:
-                send_m(socket)
+        events = selector.select()
+
+        for k, _ in events:
+            callback = k.data
+            callback(k.fileobj)
+
 
 if __name__ == '__main__':
-    sockets_list.append(server_s)
+    server()
     loop()
 

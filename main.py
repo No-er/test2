@@ -1,34 +1,56 @@
-import asyncio
 import aiohttp
-from time import time
-import random
+import asyncio
 
 
-def write_files(file):
-    file_name = random.randint(0, 100000)
-    with open(f'{file_name}', 'wb') as f:
-        f.write(file)
+async def normal():
+    return 'hui'
 
 
-async def get_files(url, session):
-    async with session.get(url, allow_redirects=True) as resp:
-        file = await resp.read()
-        write_files(file)
+async def cor_TypeError():
+    raise TypeError
+
+
+async def cor_ValueError():
+    raise ValueError
 
 
 async def main():
-    url = 'http://placekitten.com/200/300'
-    tasks = []
 
-    async with aiohttp.ClientSession() as session:
-        for _ in range(10):
-            task = asyncio.create_task(get_files(url, session))
-            tasks.append(task)
+    try:
+        async with asyncio.TaskGroup() as tg:
+            res1 = tg.create_task(normal())
+            res2 = tg.create_task(cor_TypeError())
+            res3 = tg.create_task(cor_ValueError())
 
-        await asyncio.gather(*tasks)
+        results = [res1.result(), res2.result(), res3.result()]
+
+    except* TypeError as e:
+        print(f'{e=}')
+    except* ValueError as e:
+        print(f'{e=}')
+
+    else:
+        print(results)
 
 
-if __name__ == '__main__':
-    start_time = time()
+    # try:
+    #     result = await asyncio.gather(
+    #         normal(),
+    #         cor_TypeError(),
+    #         cor_ValueError(),
+    #         #return_exceptions=True
+    #     )
+    # except TypeError as e:
+    #     print(f'{e=}')
+    # except ValueError as e:
+    #     print(f'{e=}')
+    # else:
+    #     print(result)
+
+
+if __name__ == "__main__":
     asyncio.run(main())
-    print(time()-start_time)
+
+
+
+

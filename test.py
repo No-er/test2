@@ -1,31 +1,16 @@
-def dec(f):
-    def wrapper(*args, **kwargs):
-        g = f(*args, **kwargs)
-        g.send(None)
-        return g
-    return wrapper
+import aiohttp
+import asyncio
 
-def gen():
-    x = 123
-    mes = yield x
-    print(mes)
+async def main():
 
-#@dec
-def ave():
-    sum = 0
-    count = 0
-    ave = 0
+    async with aiohttp.ClientSession() as session:
+        async with session.get('http://python.org') as response:
 
-    while True:
-        try:
-            print(1)
-            x = yield ave
-            print(2)
-        except:
-            pass
-        else:
-            count += 1
-            sum += x
-            ave = round(sum/count, 2)
+            print("Status:", response.status)
+            print("Content-type:", response.headers['content-type'])
 
-g = dec(ave)
+            html = await response.text()
+            print("Body:", html[:15], "...")
+
+
+asyncio.run(main())

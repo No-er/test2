@@ -1,54 +1,36 @@
-import aiohttp
+from redis import asyncio as aioredis
 import asyncio
 
 
-async def normal():
-    return 'hui'
+class Rediska:
+    def __init__(self, redis, keys):
+        self._redis = redis
+        self._keys = keys
 
 
-async def coro_long():
-    try:
-        print('start')
-        await asyncio.sleep(2)
-        print('stop')
-        return 'coro_long'
-    except asyncio.CancelledError as e:
-        print(f'All Done for cancelling')
-        raise asyncio.CancelledError
+    def __aiter__(self):
+        self.ikeys = iter(self._keys)
+        return self
 
 
-async def cor_TypeError():
-    raise TypeError
+    async def __anext__(self):
+        try:
+            key = next(self.ikeys)
+        except StopIteration:
+            raise StopAsyncIteration
 
+        async with self._redis.client() as session:
+            data = await session.get(key)
 
-async def cor_ValueError():
-    raise ValueError
+        return data
 
 
 async def main():
+    redis = await aioredis.from_url("redis://localhost")
+    keys = ['hui', 'a', 'c']
 
-    tasks = [normal(), cor_TypeError(), coro_long()]
-    tasks = [asyncio.create_task(task, name=f"{task.__name__}") for task in tasks]
-
-    try:
-        result = await asyncio.gather(*tasks) #return_exceptions=True)
-    except TypeError as e:
-        print(f'{e=}')
-    except ValueError as e:
-        print(f'{e=}')
-    else:
-        print(result)
-
-    for task in tasks:
-        if not task.done():
-            task.cancel()
-            print(f'Pending: {task.get_name()}')
-
-    print()
-
-    await asyncio.sleep(3)
-    for task in tasks:
-        print(f'{task._state}')
+    async for data in Rediska(redis, keys):
+        print(data)
 
 
 if __name__ == "__main__":

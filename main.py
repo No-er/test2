@@ -1,36 +1,27 @@
-from redis import asyncio as aioredis
 import asyncio
+from faker import Faker
 
 
-class Rediska:
-    def __init__(self, redis, keys):
-        self._redis = redis
-        self._keys = keys
+data = Faker('en_US')
 
 
-    def __aiter__(self):
-        self.ikeys = iter(self._keys)
-        return self
-
-
-    async def __anext__(self):
-        try:
-            key = next(self.ikeys)
-        except StopIteration:
-            raise StopAsyncIteration
-
-        async with self._redis.client() as session:
-            data = await session.get(key)
-
-        return data
+async def generator(n=1):
+    #await asyncio.sleep(0)
+    for _ in range(n):
+        name, surname = data.name_male().split()
+        yield name, surname
 
 
 async def main():
-    redis = await aioredis.from_url("redis://localhost")
-    keys = ['hui', 'a', 'c']
 
-    async for data in Rediska(redis, keys):
-        print(data)
+    # l = [i async for i in generator(3)]
+    # print(l)
+
+    d = {k: v async for k, v in generator(3)}
+    print(d)
+
+    # async for i in generator(3):
+    #     print(i)
 
 
 if __name__ == "__main__":
